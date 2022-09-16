@@ -5,8 +5,10 @@ const cors = require('cors');
 const { pool } = require('./config');
 const bcrypt = require('bcrypt');
 const router = require('express').Router();
-
+var jwt = require("jsonwebtoken");
 const app = express();
+
+
 
 app.use(bodyParser.json());
 app.use(
@@ -34,6 +36,18 @@ async function isUserExists(email) {
 async function getUser(email) {
     return new Promise(resolve => {
         pool.query('SELECT * FROM Users1 WHERE email = $1', [email], (error, results) => {
+            if (error) {
+                throw error;
+            }
+
+            return resolve(results.rows[0]);
+        });
+    });
+}
+
+async function getSurveyData(user_id) {
+    return new Promise(resolve => {
+        pool.query('SELECT * FROM SURVEY WHERE user_id = $1', [user_id], (error, results) => {
             if (error) {
                 throw error;
             }
@@ -124,10 +138,15 @@ const login = (request, response) => {
                     throw error;
                 }
                 if (!isValid) {
-                    return response.status(401).json({ status: 'failed', message: 'Invalid email or password??!' });
+                    return response.status(401).json({ status: 'failed', message: 'Invalid email or password??!', accessToken: null });
                 }
-
-                response.status(200).json({ status: 'success', message: 'Login successfully!' });
+  //signing token with user id
+                const token = jwt.sign({
+                    id: user.id
+                }, process.env.API_SECRET, {
+                    expiresIn: 86400
+                });
+                response.status(200).json({ status: 'success', message: 'Login successfully!',accessToken: token,email });
             });
         });
     }, error => {
@@ -137,30 +156,85 @@ const login = (request, response) => {
 
 
 
-const getFormdata = (request, response) => {
-    pool.query('SELECT * FROM SURVEY', (error, results) => {
+const createSurvey = (request, response) => {
+
+    console.log("request", request.body);
+    const { user_id, question_id, survey_id, answer } = request.body;
+    const date = new Date();
+    const month = date.getMonth() + 1;
+
+    const year = date.getFullYear();
+
+    pool.query('INSERT INTO SURVEY (user_id,question_id,survey_id,answer,date) VALUES ($1, $2, $3, $4,$5)', [user_id, question_id, survey_id, answer, date], error => {
         if (error) {
+            console.log("error", error);
             return response.status(400).json({ status: 'failed', message: error.code });
+
         }
+        else {
+            getSurveyData(user_id).then(user => {
+                user = {
+                    id: user.id,
+                    question_id: user.question_id,
+                    survey_id: user.survey_id,
+                    answer: user.answer
+                };
 
-        const users = results.rows.map(user => {
-            return {
-                id: user.id,
-                open_date:user.date,
-                year:user.year,
-                question_id:user.question_id,
-                survey_id:user.survey_id,
-                answer:user.answer
-            };
-        });
-
-        response.status(200).json(users);
+                response.status(201).json(user);
+            });
+        }
     });
 };
+
+const updateSurvey = (request, response) => {
+    const { user_id, question_id, survey_id, answer } = request.body;
+    const date = new Date();
+    pool.query(
+        "SELECT EXISTS (SELECT * FROM SURVEY WHERE SURVEY.question_id = $1 AND SURVEY.survey_id = $2 AND SURVEY.user_id = $3)",
+        [question_id, survey_id, user_id],
+        (error, results) => {
+            if (error) {
+                throw error;
+            }
+            if (results.rows[0].exists) {
+                console.log("exists", survey_id, question_id, user_id, answer);
+                pool.query("UPDATE SURVEY SET answer = $4  WHERE SURVEY.question_id = $1 AND SURVEY.survey_id = $2 AND SURVEY.user_id = $3 ", [question_id, survey_id, user_id, answer]);
+            } else {
+                pool.query('INSERT INTO SURVEY (user_id,question_id,survey_id,answer,date) VALUES ($1, $2, $3, $4,$5)', [user_id, question_id, survey_id, answer, date], error => {
+                    if (error) {
+                        console.log("error", error);
+                        return response.status(400).json({ status: 'failed', message: error.code });
+
+                    }
+                    else {
+                        getSurveyData(user_id).then(user => {
+                            user = {
+                                id: user.id,
+                                question_id: user.question_id,
+                                survey_id: user.survey_id,
+                                answer: user.answer
+                            };
+
+                            response.status(201).json(user);
+                        });
+                    }
+                });
+            }
+            response.status(200).json({
+                status: "success",
+                message: `SURVEY Data Updtaed successfully`
+            });
+        }
+    );
+};
+
+
+
 
 app.route('/login').post(login);
 app.route('/users').get(getUsers)
 app.route('/register').post(createUser);
+app.route('/survey').get(updateSurvey);
 
 app.get('/', (request, response) => {
     response.json('Simple User Login API using Node Express with PostgreSQL');
