@@ -1,25 +1,7 @@
 require('dotenv').config();
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const { pool } = require('./config');
+const { pool } = require('../config');
 const bcrypt = require('bcrypt');
-const router = require('express').Router();
 var jwt = require("jsonwebtoken");
-const app = express();
-
-
-
-app.use(bodyParser.json());
-app.use(
-    bodyParser.urlencoded({
-        extended: true,
-    })
-);
-app.use(cors());
-
-
-app.use('/api/v1', router);
 
 async function isUserExists(email) {
     return new Promise(resolve => {
@@ -45,17 +27,6 @@ async function getUser(email) {
     });
 }
 
-async function getSurveyData(user_id) {
-    return new Promise(resolve => {
-        pool.query('SELECT * FROM SURVEY WHERE user_id = $1', [user_id], (error, results) => {
-            if (error) {
-                throw error;
-            }
-
-            return resolve(results.rows[0]);
-        });
-    });
-}
 
 const getUsers = (request, response) => {
     pool.query('SELECT * FROM Users1', (error, results) => {
@@ -156,90 +127,12 @@ const login = (request, response) => {
 
 
 
-const createSurvey = (request, response) => {
-
-    console.log("request", request.body);
-    const { user_id, question_id, survey_id, answer } = request.body;
-    const date = new Date();
-    const month = date.getMonth() + 1;
-
-    const year = date.getFullYear();
-
-    pool.query('INSERT INTO SURVEY (user_id,question_id,survey_id,answer,date) VALUES ($1, $2, $3, $4,$5)', [user_id, question_id, survey_id, answer, date], error => {
-        if (error) {
-            console.log("error", error);
-            return response.status(400).json({ status: 'failed', message: error.code });
-
-        }
-        else {
-            getSurveyData(user_id).then(user => {
-                user = {
-                    id: user.id,
-                    question_id: user.question_id,
-                    survey_id: user.survey_id,
-                    answer: user.answer
-                };
-
-                response.status(201).json(user);
-            });
-        }
-    });
-};
-
-const updateSurvey = (request, response) => {
-    const { user_id, question_id, survey_id, answer } = request.body;
-    const date = new Date();
-    pool.query(
-        "SELECT EXISTS (SELECT * FROM SURVEY WHERE SURVEY.question_id = $1 AND SURVEY.survey_id = $2 AND SURVEY.user_id = $3)",
-        [question_id, survey_id, user_id],
-        (error, results) => {
-            if (error) {
-                throw error;
-            }
-            if (results.rows[0].exists) {
-                console.log("exists", survey_id, question_id, user_id, answer);
-                pool.query("UPDATE SURVEY SET answer = $4  WHERE SURVEY.question_id = $1 AND SURVEY.survey_id = $2 AND SURVEY.user_id = $3 ", [question_id, survey_id, user_id, answer]);
-            } else {
-                pool.query('INSERT INTO SURVEY (user_id,question_id,survey_id,answer,date) VALUES ($1, $2, $3, $4,$5)', [user_id, question_id, survey_id, answer, date], error => {
-                    if (error) {
-                        console.log("error", error);
-                        return response.status(400).json({ status: 'failed', message: error.code });
-
-                    }
-                    else {
-                        getSurveyData(user_id).then(user => {
-                            user = {
-                                id: user.id,
-                                question_id: user.question_id,
-                                survey_id: user.survey_id,
-                                answer: user.answer
-                            };
-
-                            response.status(201).json(user);
-                        });
-                    }
-                });
-            }
-            response.status(200).json({
-                status: "success",
-                message: `SURVEY Data Updtaed successfully`
-            });
-        }
-    );
-};
 
 
 
 
-app.route('/login').post(login);
-app.route('/users').get(getUsers)
-app.route('/register').post(createUser);
-app.route('/survey').get(updateSurvey);
-
-app.get('/', (request, response) => {
-    response.json('Simple User Login API using Node Express with PostgreSQL');
-});
-
-app.listen(process.env.PORT || 3000, () => {
-    console.log(`App running on port ${process.env.PORT || 3000}.`);
-});
+module.exports={
+    login,
+    getUsers,
+    createUser
+}
