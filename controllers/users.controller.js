@@ -125,12 +125,6 @@ const login = (request, response) => {
     });
 };
 
-
-
-
-
-
-
 module.exports={
     login,
     getUsers,
