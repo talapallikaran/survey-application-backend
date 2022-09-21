@@ -154,38 +154,7 @@ const login = (request, response) => {
     });
 };
 
-
-
-const createSurvey = (request, response) => {
-
-    console.log("request", request.body);
-    const { user_id, question_id, survey_id, answer } = request.body;
-    const date = new Date();
-    const month = date.getMonth() + 1;
-
-    const year = date.getFullYear();
-
-    pool.query('INSERT INTO SURVEY (user_id,question_id,survey_id,answer,date) VALUES ($1, $2, $3, $4,$5)', [user_id, question_id, survey_id, answer, date], error => {
-        if (error) {
-            console.log("error", error);
-            return response.status(400).json({ status: 'failed', message: error.code });
-
-        }
-        else {
-            getSurveyData(user_id).then(user => {
-                user = {
-                    id: user.id,
-                    question_id: user.question_id,
-                    survey_id: user.survey_id,
-                    answer: user.answer
-                };
-
-                response.status(201).json(user);
-            });
-        }
-    });
-};
-
+//update and create survey form
 const updateSurvey = (request, response) => {
     const { user_id, question_id, survey_id, answer } = request.body;
     const date = new Date();
