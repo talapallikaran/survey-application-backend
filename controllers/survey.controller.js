@@ -25,7 +25,7 @@ const updateSurvey = async (request, response) => {
             "DELETE FROM SURVEY WHERE SURVEY.question_id = $1 AND SURVEY.survey_id = $2",
             [element.question_id, data.survey_id]
         ).then(function () {
-            pool.query('INSERT INTO SURVEY (user_id,question_id,survey_id,answer,date) VALUES ($1, $2, $3, $4, $5)', [data.user_id, element.question_id, data.survey_id, element.answer, date]);
+            pool.query('INSERT INTO survey (user_id,question_id,survey_id,answer,date) VALUES ($1, $2, $3, $4, $5)', [data.user_id, element.question_id, data.survey_id, element.answer, date]);
             count++;
             if (count === data?.ans.length) {
                 return response.status(201).json({ status: 'Sucees' })
