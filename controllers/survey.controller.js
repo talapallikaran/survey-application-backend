@@ -21,12 +21,12 @@ const getSurveyData = async (request, response) => {
                 statusCode: "400"
             });
         }
-         data.forEach(element => {
+        data && data.length > 0 && data.forEach(element => {
             pool.query(
                 "SELECT * FROM submissions WHERE survey_id = $1", [element.id], (error, results) => {
                     console.log("submissionData--->", results);
                     let submissionData = results.rows;
-                    
+
                     if (error) {
                         console.log("error", error)
                         return response.status(400).json({
