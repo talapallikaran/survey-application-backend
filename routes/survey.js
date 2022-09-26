@@ -7,7 +7,7 @@ router.post("/", surveyControllers.updateSurvey,
   res.send(req.data);
 });
 
-router.get("/data", surveyControllers.getdata, 
+router.get("/data", surveyControllers.getSurveyData, 
 (req, res, next) => {
   res.send(req.data);
 });

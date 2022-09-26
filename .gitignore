@@ -12,7 +12,7 @@ node_modules/
 # dotenv environment variables file
 .env.test
 .env
-
+.gitignore
 
 # Nuxt.js build / generate output
 dist
