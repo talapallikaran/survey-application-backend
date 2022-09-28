@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const surveyControllers = require('../controllers/survey.controller');
 
-router.post("/", surveyControllers.updateSurvey, 
+router.post("/", surveyControllers.updateSurveyData, 
 (req, res, next) => {
   res.send(req.data);
 });
