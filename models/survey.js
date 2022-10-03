@@ -86,12 +86,11 @@ async function insertSubmission(data) {
 
 async function insertReview(data) {
     return new Promise(function(resolve, reject) {
-    (function() {
-          return pool.query(
-            'INSERT INTO reviews (id, qid, ans, submission_id) VALUES ($1, $2, $3,$4)',
-            [data.id,data.q_id,data.ans,data.submission_id]);
-        })
+          pool.query(
+            'INSERT INTO reviews (qid, ans, submission_id) VALUES ($1, $2, $3)',
+            [data.qid,data.ans,data.submission_id])
         .then(function(result) {
+          console.log("insertReview=====",result.rows[0]);
           resolve(result.rows[0]);
         })
         .catch(function(err) {
@@ -102,10 +101,9 @@ async function insertReview(data) {
 
 async function updateReview(data) {
     return new Promise(function(resolve, reject) {
-    
-        pool.query("UPDATE reviews SET ans = $3 WHERE reviews.qid = $2 AND reviews.submission_id = $1", [data.submission_id,data.qid,data.ans])
+        pool.query("UPDATE reviews SET ans = $3 WHERE reviews.qid = $2 and reviews.submission_id = $1", [data.submission_id,data.qid,data.ans])
         .then(function(result) {
-          console.log("updateSubmission=====",result.rows[0]);
+          console.log("updateReview=====",result.rows[0]);
           resolve(result.rows[0]);
         })
         .catch(function(err) {

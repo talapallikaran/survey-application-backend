@@ -10,7 +10,7 @@ router.post("/register", userControllers.createUser, (req, res, next) => {
   res.send(req.data);
 });
 
-router.get("/users", userControllers.getUsers, (req, res, next) => {
+router.get("/users", userControllers.listUser, (req, res, next) => {
   res.send(req.data);
 });
 
