@@ -4,35 +4,15 @@ const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
 const uuid = require("uuid");
 const uid = uuid.v4();
+var User = require('./../models/user');
+
 
 let isActive = 1;
 let deleteFlag = 0;
 let role_id = 3;
 
 
-async function isUserExists(email) {
-    return new Promise(resolve => {
-        pool.query('SELECT * FROM users WHERE email = $1', [email], (error, results) => {
-            if (error) {
-                throw error;
-            }
 
-            return resolve(results.rowCount > 0);
-        });
-    });
-}
-
-async function getUser(email, uuid) {
-    return new Promise(resolve => {
-        pool.query('SELECT * FROM users WHERE email = $1 or uuid = $2', [email, uuid], (error, results) => {
-            if (error) {
-                throw error;
-            }
-
-            return resolve(results.rows[0]);
-        });
-    });
-}
 
 
 const getUsers = (request, response) => {
@@ -101,7 +81,7 @@ const createUser = (request, response) => {
     }
 
 
-    isUserExists(email).then(isExists => {
+    User.isUserExists(email).then(isExists => {
         if (isExists) {
             return response.status(400).json({
                 status: 'failed',
@@ -157,7 +137,7 @@ const createUser = (request, response) => {
 const login = (request, response) => {
     const { email, password } = request.body;
 
-    isUserExists(email).then(isExists => {
+    User.isUserExists(email).then(isExists => {
         if (!isExists) {
             return response.status(401).json({
                 status: 'failed',
@@ -165,7 +145,7 @@ const login = (request, response) => {
             });
         }
 
-        getUser(email, uuid).then(user => {
+        User.getUser(email, uuid).then(user => {
             bcrypt.compare(password, user.password, (error, isValid) => {
                 if (error) {
                     throw error;
