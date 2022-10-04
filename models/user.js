@@ -14,7 +14,7 @@ const date = new Date();
 
 const getUsers = function() {
     return new Promise(function(resolve, reject) {
-      db.query('SELECT * FROM users', [])
+      pool.query('SELECT * FROM users', [])
         .then(function(results) {
           resolve(results.rows);
         })

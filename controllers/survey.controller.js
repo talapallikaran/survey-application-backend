@@ -13,65 +13,43 @@ const getSurveyData = async (request, response) => {
   let questiondata;
   let comment;
 
-  await pool.query("SELECT * FROM survey", (error, results) => {
-    let data = results.rows;
-    if (error) {
-      console.log("error", error);
-      return response.status(400).json({
-        status: "failed",
-        message: error.code,
-        statusCode: "400",
-      });
-    }
-    data && data.length > 0 && data.forEach((element) => {
-      pool.query(
-        "select q.id, q.question, r.ans ,su.comment from questions q left join surveyquestions sq on sq.qu_id = q.id left join reviews r on r.qid = q.id  left join submissions su on su.survey_id= sq.survey_id where sq.survey_id = $1",
-        [element.id], (error, results) => {
-          if (error) {
-            console.log("error", error);
-            return response.status(400).json({
-              status: "failed",
-              message: "submissions query failed",
-              statusCode: "400",
-            });
-          }
-          else {
-
-            questiondata = results.rows;
-
-            questiondata.filter((question) => {
-              comment = question.comment ? question.comment : "";
-              question.ans = question.ans ? question.ans : "";
-              pool.query;
-            });
-
-            count++;
-            surveydata.push({
-              id: element.id,
-              title: element.title,
-              comment: comment,
-              question: questiondata,
-            });
-
-            if (count == data.length) {
-              response
-                .status(200)
-                .json({
-                  statusCode: "200",
-                  message: "Success",
-                  surveydata,
-                });
-            }
-          }
-        }
-      );
-
-    });
-
-
-
-  });
-
+  
+  Survey.getSurveyinfo()
+    .then(function (result) {
+      console.log("Result", result);
+      if (result) {
+        let data = result;
+        data.forEach((element) => {
+          Survey.getSurvey({ survey_id: element.id })
+            .then(function (result) {
+              questiondata = result;
+              questiondata.filter((question) => {
+                question.ans = question.ans ? question.ans : "";
+                comment = question.comment ? question.comment : "";
+                pool.query;
+              });
+            })
+            .then(function () {
+              count++;
+              surveydata.push({
+                id: element.id,
+                title: element.title,
+                comment: comment,
+                question: questiondata,
+              });
+              if (count == data.length) {
+                response
+                  .status(200)
+                  .json({
+                    statusCode: "200",
+                    message: "Success",
+                    surveydata,
+                  });
+              }
+            })
+        })
+      }
+    })
 };
 
 
