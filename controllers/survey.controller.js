@@ -1,5 +1,6 @@
 require("dotenv").config();
 const { pool } = require("../config");
+var Survey = require('./../models/survey');
 
 let isActive = 1;
 let deleteFlag = 0;
@@ -9,7 +10,6 @@ const date = new Date();
 const getSurveyData = async (request, response) => {
     let count = 0;
     let surveydata = [];
-
     let questiondata;
     let comment;
 
@@ -74,36 +74,39 @@ const getSurveyData = async (request, response) => {
 
 };
 
-const updateSurveyData = (request, response) => {
-    const { user_id, question_id, survey_id, answer } = request.body;
-    const date = new Date();
-    pool.query(
-        "SELECT EXISTS (SELECT * FROM submissions WHERE user_id = $1)",
-        [user_id],
-        (error, results) => {
-            if (error) {
-                throw error;
-            }
-            if (results.rows[0].exists) {
-                console.log("exists",  user_id);
-               
-            } 
-            else {
-                console.log("id:",  results);
-                 response.status(201).json({ status: "success"});
-                
-            }
+
+const updateSurveyData = function(req, res) {
+    const { user_id,survey_id,comment} = req.body;
+    console.log("user_id",user_id,survey_id);
+
+    Survey.checkSubmissionExists(user_id,survey_id)
+      .then(function(result) {
+        console.log("result ===>", result);
+        if(result){
+            Survey.updateSubmission(user_id,survey_id,comment)
+            .then(function(result) {
+                console.log("data ===>", result);
+                return res.status(200).json(result); 
+              })
+              .catch(function(err) {
+                return res.status(400).json({
+                  message: err
+                });
+              });
         }
-    );
-};
-
-
-
-
-
+        else{
+            console.log("false");
+        }
+                
+      })
+      .catch(function(err) {
+        return res.status(400).json({
+          message: err
+        });
+      });
+  }
 
 module.exports = {
-    updateSurvey,
     getSurveyData,
     updateSurveyData
 };
