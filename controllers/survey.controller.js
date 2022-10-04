@@ -75,35 +75,53 @@ const getSurveyData = async (request, response) => {
 };
 
 
-const updateSurveyData = function(req, res) {
-    const { user_id,survey_id,comment} = req.body;
-    console.log("user_id",user_id,survey_id);
+const updateSurveyData =async function(req, res) {
+    const {user_id,survey_id,comment,id,qid,ans} = req.body;
+    console.log("user_id",req.body);
 
     Survey.checkSubmissionExists(user_id,survey_id)
       .then(function(result) {
-        console.log("result ===>", result);
         if(result){
-            Survey.updateSubmission(user_id,survey_id,comment)
+            Survey.updateSubmission( user_id, survey_id, comment)
             .then(function(result) {
-                console.log("data ===>", result);
-                return res.status(200).json(result); 
+                return res.status(200).json({result,message:"update successfully"}); 
               })
               .catch(function(err) {
                 return res.status(400).json({
-                  message: err
+                  message: "update submission failed"
                 });
               });
         }
         else{
-            console.log("false");
+            console.log("user_id,survey_id,comment ===>",id,user_id,survey_id,comment);
+            Survey.insertSubmission({id,user_id,survey_id,comment})
+            .then(function(result) {
+                return res.status(200).json({result,message:"insert successfully"}); 
+              })
+              .catch(function(err) {
+                return res.status(400).json({
+                  message: "insert submission failed"
+                });
+              });
         }
-                
+        Survey.checkReviewExists(id,qid)
+        .then(function(result){
+            if(result){
+              Survey.updateReview( id, qid, ans)
+              .then(function(result){
+                console.log("result",result);
+                  console.log("updateReview",result);
+                  return res.status(200).json(result); 
+              })
+            } 
+        })
       })
       .catch(function(err) {
         return res.status(400).json({
           message: err
         });
       });
+     
   }
 
 module.exports = {

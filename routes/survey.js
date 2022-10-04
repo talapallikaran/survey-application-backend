@@ -10,6 +10,7 @@ router.post("/", surveyControllers.updateSurveyData,
 router.get("/data", surveyControllers.getSurveyData, 
 (req, res, next) => {
   res.send(req.data);
+  next();
 });
 module.exports = router;
 
