@@ -12,6 +12,18 @@ async function getSurveyinfo() {
     });
 }
 
+async function getSurvey(data) {
+  return new Promise(resolve => {
+      pool.query('select q.id, q.question, r.ans ,su.comment from questions q left join surveyquestions sq on sq.qu_id = q.id left join reviews r on r.qid = q.id  left join submissions su on su.survey_id= sq.survey_id where sq.survey_id = $1',[data.survey_id],(error, results) => {
+          if (error) {
+              throw error;
+          }
+          console.log("getSurvey",data.survey_id);
+          return resolve(results.rows);
+      });
+  });
+}
+
 async function getSubinfo(survey_id) {
     return new Promise(resolve => {
         pool.query('select * from submissions where survey_id = $1', [survey_id], (error, results) => {
@@ -121,5 +133,6 @@ module.exports = {
     checkReviewExists,
     updateSubmission,
     insertSubmission,
-    checkSubmissionExists
+    checkSubmissionExists,
+    getSurvey
 }
