@@ -14,7 +14,18 @@ async function getSubmission(data) {
 
 async function getSurvey(data) {
   return new Promise(resolve => {
-      pool.query('select q.id, q.question, r.ans from questions q left join surveyquestions sq on sq.qu_id = q.id left join reviews r on r.qid = q.id left join submissions su on su.id= r.submission_id where su.survey_id = $1 AND su.user_id = $2',[data.survey_id,data.user_id],(error, results) => {
+      pool.query('select q.id, q.question from questions q left join surveyquestions sq on sq.qu_id = q.id left join submissions su on su.id= sq.survey_id where su.survey_id = $1 AND su.user_id = $2',[data.survey_id,data.user_id],(error, results) => {
+          if (error) {
+              throw error;
+          }
+          return resolve(results.rows);
+      });
+  });
+}
+
+async function getReview(data) {
+  return new Promise(resolve => {
+      pool.query('select r.ans from questions q left join surveyquestions sq on sq.qu_id = q.id left join reviews r on r.qid = q.id left join submissions su on su.id= r.submission_id where q.id = $1 AND su.user_id = $3 AND su.survey_id = $2',[data.id,data.survey_id,data.user_id],(error, results) => {
           if (error) {
               throw error;
           }
@@ -120,6 +131,7 @@ async function updateReview(data) {
 
 module.exports = {
   getSubmission,
+  getReview,
     getSubinfo,
     updateReview,
     insertReview,
