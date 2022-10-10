@@ -159,11 +159,23 @@ function hashPassword(password) {
     });
   }
 
+  async function findOneById(uuid) {
+    return new Promise(resolve => {
+        pool.query('SELECT * FROM users WHERE uuid = $1', [uuid], (error, results) => {
+            if (error) {
+                throw error;
+            }
+
+            return resolve(results.rowCount > 0);
+        });
+    });
+}
 
 
 module.exports = {
     isUserExists,
     getUser,
     create,
-    getUsers
+    getUsers,
+    findOneById
 }
