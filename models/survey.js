@@ -3,7 +3,7 @@ const date = new Date();
 
 async function getSubmission(data) {
     return new Promise(resolve => {
-        pool.query('SELECT users.id,submissions.user_id,submissions.comment,submissions.survey_id FROM submissions LEFT JOIN users ON users.id = submissions.user_id WHERE users.uuid = $1 ',[data.uuid], (error, results) => {
+        pool.query('SELECT users.id,submissions.user_id,submissions.comment,submissions.survey_id FROM submissions LEFT JOIN users ON users.id = submissions.user_id WHERE users.uuid = $1',[data.uuid], (error, results) => {
             if (error) {
                 throw error;
             }
@@ -12,9 +12,9 @@ async function getSubmission(data) {
     });
 }
 
-async function getSurvey(data) {
+async function getQuestionAnswer(data) {
   return new Promise(resolve => {
-      pool.query('select q.id, q.question from questions q left join surveyquestions sq on sq.qu_id = q.id left join submissions su on su.id= sq.survey_id where su.survey_id = $1 AND su.user_id = $2',[data.survey_id,data.user_id],(error, results) => {
+      pool.query('select q.id,q.question,r.ans from questions q LEFT JOIN surveyquestions sq on sq.qu_id = q.id LEFT JOIN reviews r on r.qid = q.id LEFT JOIN submissions su on su.id= r.submission_id where su.user_id = $1 AND sq.survey_id = $2',[data.user_id,data.survey_id],(error, results) => {
           if (error) {
               throw error;
           }
@@ -25,7 +25,19 @@ async function getSurvey(data) {
 
 async function getReview(data) {
   return new Promise(resolve => {
-      pool.query('select r.ans from questions q left join surveyquestions sq on sq.qu_id = q.id left join reviews r on r.qid = q.id left join submissions su on su.id= r.submission_id where q.id = $1 AND su.user_id = $3 AND su.survey_id = $2',[data.id,data.survey_id,data.user_id],(error, results) => {
+      pool.query('select * from survey',[],(error, results) => {
+          if (error) {
+              throw error;
+          }
+          return resolve(results.rows);
+      });
+  });
+}
+
+
+async function getQuestion(data) {
+  return new Promise(resolve => {
+      pool.query('select q.id,q.question,r.ans from questions q LEFT JOIN surveyquestions sq on sq.qu_id = q.id LEFT JOIN reviews r on r.qid = q.id where sq.survey_id = $1',[data.survey_id],(error, results) => {
           if (error) {
               throw error;
           }
@@ -106,7 +118,7 @@ async function insertReview(data) {
     return new Promise(function(resolve, reject) {
           pool.query(
             "INSERT INTO reviews (qid, ans, submission_id) VALUES ($1, $2, $3)",
-            [data.qid,data.ans,data.submission_id])
+            [data.qid,data.ans === "" ? null : data.ans,data.submission_id])
         .then(function(result) {
           resolve(result.rows[0]);
         })
@@ -139,5 +151,6 @@ module.exports = {
     updateSubmission,
     insertSubmission,
     checkSubmissionExists,
-    getSurvey
+    getQuestionAnswer,
+    getQuestion
 }
