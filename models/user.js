@@ -57,7 +57,7 @@ async function create(data) {
           return hashPassword(data.password);
         })
         .then(function(hash) {
-          return pool.query('INSERT INTO users (id,name, email,phone,role_id,isactive,deleteflag,password,uuid,updateddate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9,$10)', [data.id,data.name, data.email, data.phone, role_id, isActive, deleteFlag, hash, uid, date]);
+          return pool.query('INSERT INTO users (name, email,phone,role_id,isactive,deleteflag,password,uuid,updateddate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9)', [data.name, data.email, data.phone, role_id, isActive, deleteFlag, hash, uid, date]);
         })
         .then(function(result) {
           console.log("reult",result.rows[0]);

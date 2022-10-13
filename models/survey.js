@@ -7,6 +7,9 @@ let accesslevel = 0;
 let isActive = 1;
 let deleteFlag = 0;
 
+
+
+
 async function getSubmission(data) {
     return new Promise(resolve => {
         pool.query('SELECT users.id,submissions.user_id,submissions.comment,submissions.survey_id FROM submissions LEFT JOIN users ON users.id = submissions.user_id WHERE users.uuid = $1',[data.uuid], (error, results) => {
@@ -40,6 +43,18 @@ async function getSurvey(data) {
   });
 }
 
+async function getSubmissionId(id) {
+  return new Promise(resolve => {
+      pool.query('SELECT MAX(ID) FROM submissions',[],(error, results) => {
+          if (error) {
+              throw error;
+          }
+        console.log("results",results.rows);
+          return resolve(results.rows);
+        
+      });
+  });
+}
 
 async function getQuestion(data) {
   return new Promise(resolve => {
@@ -78,11 +93,11 @@ async function checkSubmissionExists(user_id,survey_id,uuid) {
 async function insertSubmission(data) {
     return new Promise(function(resolve, reject) {
         pool.query(
-            'INSERT INTO submissions (id,user_id,survey_id,comment,dateupdated) VALUES ($1, $2, $3,$4,$5)',
-            [data.id,data.user_id,data.survey_id,data.comment,date])
+            'INSERT INTO submissions (user_id,survey_id,comment,dateupdated) VALUES ($1, $2, $3,$4) RETURNING id',
+            [data.user_id,data.survey_id,data.comment,date])
    
         .then(function(result) {
-          resolve(result.rows[0]);
+          resolve(result.rows[0].id);
         })
         .catch(function(err) {
           reject(err);
@@ -109,13 +124,14 @@ async function insertSubmission(data) {
 
 
 
-  async function checkReviewExists(submission_id,qid) {
+  async function checkReviewExists(qid,user_id) {
     return new Promise(resolve => {
-        pool.query('select * from reviews where submission_id = $1 and qid = $2', [submission_id,qid], (error, results) => {
+        pool.query('SELECT reviews.qid, reviews.ans,submissions.user_id FROM reviews,submissions WHERE reviews.submission_id=submissions.id AND reviews.qid = $1 AND submissions.user_id = $2', [qid,user_id], (error, results) => {
             if (error) {
                 throw error;
             }
             return resolve(results.rowCount > 0);
+            
         });
     });
 }
@@ -124,7 +140,7 @@ async function insertReview(data) {
     return new Promise(function(resolve, reject) {
           pool.query(
             "INSERT INTO reviews (qid, ans, submission_id) VALUES ($1, $2, $3)",
-            [data.qid,data.ans === "" ? null : ans,data.submission_id])
+            [data.qid,data.ans === "" ? null : data.ans,data.submission_id])
         .then(function(result) {
           resolve(result.rows[0]);
         })
@@ -163,6 +179,22 @@ async function updateReview(data) {
     });
   }
 
+  async function insertQuestion(data) {
+    return new Promise(function(resolve, reject) {
+        pool.query(
+            'INSERT INTO questions (question,isactive,deleteflag,dateupdate) VALUES ($1, $2, $3,$4)',
+            [data.question,isActive,deleteFlag,date])
+   
+        .then(function(result) {
+          resolve(result.rows[0]);
+        })
+        .catch(function(err) {
+          reject(err);
+        });
+    });
+  }
+
+
 
 module.exports = {
   getSubmission,
@@ -176,5 +208,7 @@ module.exports = {
     checkSubmissionExists,
     getQuestionAnswer,
     getQuestion,
-    insertSurvey
+    insertSurvey,
+    insertQuestion,
+    getSubmissionId
 }

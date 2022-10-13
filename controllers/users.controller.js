@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
 const uuid = require("uuid");
 var User = require('./../models/user');
+const uid = uuid.v4();
 
 
 const listUser = function(req, res) {
@@ -12,7 +13,8 @@ const listUser = function(req, res) {
       })
       .catch(function(err) {
         return res.status(400).json({
-          message: err
+          message: err,
+          statusCode: "400"
         });
       });
   }
@@ -22,19 +24,23 @@ const createUser =  (req, res) => {
         if (isExists) {
             return res.status(400).json({
                 status: 'failed',
-                message: 'Email is taken.'
+                message: 'Email is taken.',
+                statusCode: "400"
             });
         }
     else {
         User.create(req.body)
         .then(function(result) {
           return res.status(200).json({
+            status: 'success',
+            statusCode: "200",
             message: 'success! created account for new user'
           });
     })
         .catch(function(err) {
           return res.status(400).json({
-            message: err
+            message: err,
+            statusCode: "400"
           });
         });
     }
@@ -48,7 +54,8 @@ const login = (request, response) => {
         if (!isExists) {
             return response.status(401).json({
                 status: 'failed',
-                message: 'Invalid email or password!'
+                message: 'Invalid email or password!',
+                statusCode: "401"
             });
         }
         User.getUser(email, uuid).then(user => {
@@ -76,7 +83,8 @@ const login = (request, response) => {
                     message: 'Login Successfully!',
                     accessToken: token,
                     email: email,
-                    uuid: uuid
+                    uuid: user.uuid,
+                    name:user.name
                 });
             });
         });
