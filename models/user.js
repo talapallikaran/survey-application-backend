@@ -166,7 +166,7 @@ function hashPassword(password) {
                 throw error;
             }
 
-            return resolve(results.rowCount > 0);
+            return resolve(results.rows[0]);
         });
     });
 }

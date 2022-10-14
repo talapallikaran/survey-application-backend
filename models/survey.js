@@ -12,7 +12,7 @@ let deleteFlag = 0;
 
 async function getSubmission(data) {
     return new Promise(resolve => {
-        pool.query('SELECT users.id,submissions.user_id,submissions.comment,submissions.survey_id FROM submissions LEFT JOIN users ON users.id = submissions.user_id WHERE users.uuid = $1',[data.uuid], (error, results) => {
+        pool.query('SELECT users.id,submissions.user_id,submissions.comment,submissions.survey_id FROM submissions LEFT JOIN users ON users.id = submissions.user_id WHERE users.uuid = $1 AND submissions.survey_id = $2',[data.uuid,data.survey_id], (error, results) => {
             if (error) {
                 throw error;
             }
@@ -23,7 +23,7 @@ async function getSubmission(data) {
 
 async function getQuestionAnswer(data) {
   return new Promise(resolve => {
-      pool.query('select q.id,q.question,r.ans from questions q LEFT JOIN surveyquestions sq on sq.qu_id = q.id LEFT JOIN reviews r on r.qid = q.id LEFT JOIN submissions su on su.id= r.submission_id where su.user_id = $1 AND sq.survey_id = $2',[data.user_id,data.survey_id],(error, results) => {
+      pool.query('select r.qid,q.question,r.ans from questions q LEFT JOIN surveyquestions sq on sq.qu_id = q.id LEFT JOIN reviews r on r.qid = q.id LEFT JOIN submissions su on su.id= r.submission_id where su.user_id = $1 AND sq.survey_id = $2',[data.user_id,data.survey_id],(error, results) => {
           if (error) {
               throw error;
           }
@@ -58,7 +58,7 @@ async function getSubmissionId(id) {
 
 async function getQuestion(data) {
   return new Promise(resolve => {
-      pool.query('select q.id,q.question from questions q LEFT JOIN surveyquestions sq on sq.qu_id = q.id where sq.survey_id = $1',[data.survey_id],(error, results) => {
+      pool.query('select q.id as qid,q.question from questions q LEFT JOIN surveyquestions sq on sq.qu_id = q.id where sq.survey_id = $1',[data.survey_id],(error, results) => {
           if (error) {
               throw error;
           }
@@ -182,10 +182,11 @@ async function updateReview(data) {
   async function insertQuestion(data) {
     return new Promise(function(resolve, reject) {
         pool.query(
-            'INSERT INTO questions (question,isactive,deleteflag,dateupdate) VALUES ($1, $2, $3,$4)',
-            [data.question,isActive,deleteFlag,date])
+            'INSERT INTO questions (isactive,deleteflag,question,dateupdate) VALUES ($1, $2, $3,$4)',
+            [isActive,deleteFlag,data.question,date])
    
         .then(function(result) {
+          console.log("result",result);
           resolve(result.rows[0]);
         })
         .catch(function(err) {
