@@ -28,11 +28,8 @@ const getSurveyData = async (request, response) => {
                 if (result) {
                   let data = result;
                   if (data == '') {
-                    Survey.getSurvey()
-                      .then(function (result) {
-                        questiondata1 = result;
 
-                        questiondata1.forEach((que) => {
+                        survey.forEach((que) => {
                           Survey.getQuestion({ survey_id: que.id })
                             .then(function (result) {
                               answerdata1 = result;
@@ -49,8 +46,7 @@ const getSurveyData = async (request, response) => {
                                 comment: comment,
                                 question: answerdata1
                               });
-
-                              if (count1 === questiondata1.length) {
+                              if (count1 === survey.length) {
                                 response
                                   .status(200)
                                   .json({
@@ -61,7 +57,7 @@ const getSurveyData = async (request, response) => {
                               }
                             })
                         })
-                      })
+                    
                   }
 
               else {
@@ -120,8 +116,7 @@ const updateSurveyData = async function (req, res) {
     if (isExists) {
 
       formdata.surveydata.forEach((element => {
-        let submission_id = element.id;
-
+        let submission_id ;
         Survey.checkSubmissionExists(user_id, element.survey_id, req.params.uuid)
           .then(function (result) {
             if (result) {
@@ -135,8 +130,11 @@ const updateSurveyData = async function (req, res) {
                 });
             }
             else {
-              Survey.insertSubmission({ id: submission_id, user_id: user_id, survey_id: element.survey_id, comment: element.comment })
+              Survey.insertSubmission({ user_id: user_id, survey_id: element.survey_id, comment: element.comment })
                 .then(function (result) {
+                  if(result){
+                    submission_id = result; 
+                  }
                   res.statusCode = 200;
                 })
                 .catch(function (err) {
@@ -145,11 +143,11 @@ const updateSurveyData = async function (req, res) {
             }
           })
         element.question.forEach((que => {
-
-          Survey.checkReviewExists(submission_id, que.qid)
+        
+          Survey.checkReviewExists(que.qid,user_id)
             .then(function (result) {
               if (result) {
-                Survey.updateReview({ submission_id, qid: que.qid, ans: que.ans })
+                Survey.updateReview({ qid: que.qid, ans: que.ans })
                   .then(function (result) {
 
                     console.log("result3", result);
@@ -160,14 +158,24 @@ const updateSurveyData = async function (req, res) {
                   });
               }
               else {
-                Survey.insertReview({ submission_id, qid: que.qid, ans: que.ans })
-                  .then(function (result) {
-                    console.log("result4", result);
-                    res.statusCode = 200;
-                  })
-                  .catch(function (err) {
-                    res.statusCode = 400;
-                  });
+                Survey.getSubmissionId()
+                    .then(function (result){
+                      console.log("result",result);
+                      let submission_id1 = result;
+
+                      submission_id1.forEach((sub)=>{
+                        Survey.insertReview({ submission_id:sub.max,qid: que.qid, ans: que.ans })
+                        .then(function (result) {
+                          console.log("result4", result);
+                          res.statusCode = 200;
+                        })
+                        .catch(function (err) {
+                          res.statusCode = 400;
+                        });
+                      })
+                      
+                    }) 
+              
               }
             })
         }))
