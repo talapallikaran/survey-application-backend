@@ -195,6 +195,18 @@ async function updateReview(data) {
     });
   }
 
+  async function getWorkerinfo(id) {
+    return new Promise(resolve => {
+        pool.query('SELECT worker_supervisor_map.worker_id from worker_supervisor_map left join users u on u.id = worker_supervisor_map.supervisor_id where u.id = $1', [id], (error, results) => {
+            if (error) {
+                throw error;
+            }
+            return resolve(results.rows);
+        });
+    });
+}
+
+
 
 
 module.exports = {
@@ -211,5 +223,6 @@ module.exports = {
     getQuestion,
     insertSurvey,
     insertQuestion,
-    getSubmissionId
+    getSubmissionId,
+    getWorkerinfo
 }

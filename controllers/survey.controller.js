@@ -12,6 +12,9 @@ const getSurveyData = async (request, response) => {
   let title;
   let answerdata1 = [];
   let getsurvey = [];
+  let worker = [];
+  let workerdata = [];
+  let name ;
 
   User.findOneById(request.params.uuid).then(isExists => {
     if (isExists) {
@@ -82,6 +85,21 @@ const getSurveyData = async (request, response) => {
                   }
                 }
               })
+
+            Survey.getWorkerinfo(isExists.id)
+            .then(function(result){
+              worker = result;
+              worker.map((work)=>{
+                User.getUserId(work.worker_id)
+                .then(function(result){
+                  workerdata = result;
+                  name = workerdata[0].name
+                  console.log("workerdata","id",work.worker_id,"name",name);
+                })
+              })
+              
+            
+            })
           })
         })
     }

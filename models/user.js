@@ -24,6 +24,17 @@ const getUsers = function() {
     });
   }
 
+  const getUserId = function(id) {
+    return new Promise(function(resolve, reject) {
+      pool.query('SELECT * FROM users where id = $1', [id])
+        .then(function(results) {
+          resolve(results.rows);
+        })
+        .catch(function(err) {
+          reject(err);
+        });
+    });
+  }
 
 async function isUserExists(email) {
     return new Promise(resolve => {
@@ -177,5 +188,6 @@ module.exports = {
     getUser,
     create,
     getUsers,
-    findOneById
+    findOneById,
+    getUserId
 }
