@@ -11,6 +11,13 @@ router.get("/data/:uuid", surveyControllers.getSurveyData,
 (req, res, next) => {
   res.send(req.data);
 });
+
+
+router.post("/create/surveydata", surveyControllers.createSurvey, 
+(req, res, next) => {
+  res.send(req.data);
+});
+
 module.exports = router;
 
 

@@ -1,12 +1,7 @@
 require("dotenv").config();
-const { pool } = require("../config");
 var Survey = require('./../models/survey');
 var User = require('./../models/user');
 
-let isActive = 1;
-let deleteFlag = 0;
-let role_id = 3;
-const date = new Date();
 
 const getSurveyData = async (request, response) => {
   let count = 0;
@@ -19,82 +14,90 @@ const getSurveyData = async (request, response) => {
   let answerdata1 = [];
   let surveydata1 = [];
   let count1 = 0;
+  let survey = [];
 
   User.findOneById(request.params.uuid).then(isExists => {
     if (isExists) {
-      Survey.getSubmission({ uuid: request.params.uuid })
+      uuid = request.params.uuid;
+      Survey.getSurvey()
         .then(function (result) {
-          if (result) {
-            let data = result;
-            console.log("data", data);
-            if (data == '') {
-              Survey.getReview()
-                .then(function (result) {
-                  questiondata1 = result;
-
-                  questiondata1.forEach((que) => {
-                    Survey.getQuestion({ survey_id: que.id })
+          survey = result;
+          survey.forEach((submission) => {
+            Survey.getSubmission({ uuid })
+              .then(function (result) {
+                if (result) {
+                  let data = result;
+                  if (data == '') {
+                    Survey.getSurvey()
                       .then(function (result) {
-                        answerdata1 = result;
-                        answerdata1.forEach((ans1) => {
-                          ans1.ans = "";
+                        questiondata1 = result;
+
+                        questiondata1.forEach((que) => {
+                          Survey.getQuestion({ survey_id: que.id })
+                            .then(function (result) {
+                              answerdata1 = result;
+                              answerdata1.forEach((ans1) => {
+                                ans1.ans = "";
+                              })
+                              comment = que.comment ? que.comment : "";
+                              id = que.id ? que.id : "";
+                              title = que.title ? que.title : "";
+                              count1++;
+                              surveydata1.push({
+                                id: id,
+                                title: title,
+                                comment: comment,
+                                question: answerdata1
+                              });
+
+                              if (count1 === questiondata1.length) {
+                                response
+                                  .status(200)
+                                  .json({
+                                    statusCode: "200",
+                                    message: "Success",
+                                    surveydata1
+                                  });
+                              }
+                            })
                         })
-                        comment = que.comment ? que.comment : "";
-                        id = que.id ? que.id : "";
-                        title = que.title ? que.title : "";
-                        count1++;
-                        surveydata1.push({
-                          id: id,
-                          title: title,
+                      })
+                  }
+
+              else {
+                  data.forEach((element) => {
+                    Survey.getQuestionAnswer({ user_id: element.user_id, survey_id: element.survey_id })
+                      .then(function (result) {
+                        questiondata = result;
+                        questiondata.forEach((que) => {
+                          que.ans = que.ans ? que.ans : "";
+                        })
+                      })
+                      .then(function () {
+                        comment = element.comment ? element.comment : "";
+                        count++;
+                        surveydata.push({
+                          id: element.survey_id,
+                          title: element.title,
                           comment: comment,
-                          question: answerdata1
+                          questiondata
                         });
 
-                        if (count1 === questiondata1.length) {
+                        if (count === data.length) {
                           response
                             .status(200)
                             .json({
                               statusCode: "200",
                               message: "Success",
-                              surveydata1
+                              surveydata
                             });
                         }
                       })
                   })
-                })
-            }
-            else {
-              data.forEach((element) => {
-                Survey.getQuestionAnswer({ user_id: element.user_id, survey_id: element.survey_id })
-                  .then(function (result) {
-                    questiondata = result;
-                    questiondata.forEach((que) => {
-                      que.ans = que.ans ? que.ans : "";
-                    })
-                  })
-                  .then(function () {
-                    comment = element.comment ? element.comment : "";
-                    count++;
-                    surveydata.push({
-                      id: element.survey_id,
-                      title: element.title,
-                      comment: comment,
-                      questiondata
-                    });
-
-                    if (count === data.length) {
-                      response
-                        .status(200)
-                        .json({
-                          statusCode: "200",
-                          message: "Success",
-                          surveydata
-                        });
-                    }
-                  })
+                }
+              }
               })
-            }
-          }
+          })
         })
     }
     else {
@@ -187,10 +190,27 @@ const updateSurveyData = async function (req, res) {
   });
 }
 
+const createSurvey =  (req, res) => {
+
+      Survey.insertSurvey(req.body)
+      .then(function(result) {
+        return res.status(200).json({
+          message: 'success! inserted survey data'
+        });
+  })
+      .catch(function(err) {
+        return res.status(400).json({
+          message: err
+        });
+      });
+  }
+
+
 
 
 
 module.exports = {
   getSurveyData,
-  updateSurveyData
+  updateSurveyData,
+  createSurvey
 };

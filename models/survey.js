@@ -1,5 +1,11 @@
 const { pool } = require('../config');
 const date = new Date();
+const month = date.getUTCMonth() + 1; 
+const year = date.getUTCFullYear();
+
+let accesslevel = 0;
+let isActive = 1;
+let deleteFlag = 0;
 
 async function getSubmission(data) {
     return new Promise(resolve => {
@@ -23,9 +29,9 @@ async function getQuestionAnswer(data) {
   });
 }
 
-async function getReview(data) {
+async function getSurvey(data) {
   return new Promise(resolve => {
-      pool.query('select * from survey',[],(error, results) => {
+      pool.query('select * from survey where month = $1 AND year = $2',[month,year],(error, results) => {
           if (error) {
               throw error;
           }
@@ -37,7 +43,7 @@ async function getReview(data) {
 
 async function getQuestion(data) {
   return new Promise(resolve => {
-      pool.query('select q.id,q.question,r.ans from questions q LEFT JOIN surveyquestions sq on sq.qu_id = q.id LEFT JOIN reviews r on r.qid = q.id where sq.survey_id = $1',[data.survey_id],(error, results) => {
+      pool.query('select q.id,q.question from questions q LEFT JOIN surveyquestions sq on sq.qu_id = q.id where sq.survey_id = $1',[data.survey_id],(error, results) => {
           if (error) {
               throw error;
           }
@@ -118,7 +124,7 @@ async function insertReview(data) {
     return new Promise(function(resolve, reject) {
           pool.query(
             "INSERT INTO reviews (qid, ans, submission_id) VALUES ($1, $2, $3)",
-            [data.qid,data.ans === "" ? null : data.ans,data.submission_id])
+            [data.qid,data.ans === "" ? null : ans,data.submission_id])
         .then(function(result) {
           resolve(result.rows[0]);
         })
@@ -141,9 +147,26 @@ async function updateReview(data) {
   }
 
 
+
+  async function insertSurvey(data) {
+    return new Promise(function(resolve, reject) {
+        pool.query(
+            'INSERT INTO survey (id,title,month,year,accesslevel,isactive,deleteflag,dateupdate) VALUES ($1, $2, $3,$4,$5,$6,$7,$8)',
+            [data.id,data.title,month,year,accesslevel,isActive,deleteFlag,date])
+   
+        .then(function(result) {
+          resolve(result.rows[0]);
+        })
+        .catch(function(err) {
+          reject(err);
+        });
+    });
+  }
+
+
 module.exports = {
   getSubmission,
-  getReview,
+  getSurvey,
     getSubinfo,
     updateReview,
     insertReview,
@@ -152,5 +175,6 @@ module.exports = {
     insertSubmission,
     checkSubmissionExists,
     getQuestionAnswer,
-    getQuestion
+    getQuestion,
+    insertSurvey
 }
