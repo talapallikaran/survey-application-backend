@@ -195,9 +195,9 @@ async function updateReview(data) {
     });
   }
 
-  async function getWorkerinfo(id) {
+  async function getWorkerinfo(uuid) {
     return new Promise(resolve => {
-        pool.query('SELECT worker_supervisor_map.worker_id from worker_supervisor_map left join users u on u.id = worker_supervisor_map.supervisor_id where u.id = $1', [id], (error, results) => {
+        pool.query('SELECT worker_supervisor_map.worker_id from worker_supervisor_map left join users u on u.id = worker_supervisor_map.supervisor_id left join survey s on s.id = u.id where u.uuid = $1', [uuid], (error, results) => {
             if (error) {
                 throw error;
             }
@@ -207,7 +207,30 @@ async function updateReview(data) {
 }
 
 
+//Supervisor
 
+
+async function getSupervisorsubmissions(data) {
+  return new Promise(resolve => {
+      pool.query('SELECT supervisor_submissions.user_id,supervisor_submissions.comment,supervisor_submissions.survey_id,supervisor_submissions.woker_id FROM supervisor_submissions left join users ON users.id =  supervisor_submissions.user_id WHERE user.uuid = $1 and supervisor_submissions.survey_id = $2',[data.uuid,data.survey_id], (error, results) => {
+          if (error) {
+              throw error;
+          }
+          return resolve(results.rows);
+      });
+  });
+}
+
+async function getSupervisorQuestionAnswer(data) {
+return new Promise(resolve => {
+    pool.query('select r.qid,q.question,r.ans from questions q LEFT JOIN surveyquestions sq on sq.qu_id = q.id LEFT JOIN reviews r on r.qid = q.id LEFT JOIN submissions su on su.id= r.submission_id where su.user_id = $1 AND sq.survey_id = $2',[data.user_id,data.survey_id],(error, results) => {
+        if (error) {
+            throw error;
+        }
+        return resolve(results.rows);
+    });
+});
+}
 
 module.exports = {
   getSubmission,
@@ -224,5 +247,7 @@ module.exports = {
     insertSurvey,
     insertQuestion,
     getSubmissionId,
-    getWorkerinfo
+    getWorkerinfo,
+    getSupervisorsubmissions,
+    getSupervisorQuestionAnswer
 }
