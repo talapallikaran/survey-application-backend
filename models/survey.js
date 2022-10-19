@@ -12,7 +12,7 @@ let deleteFlag = 0;
 
 async function getSubmission(data) {
     return new Promise(resolve => {
-        pool.query('SELECT users.id,submissions.user_id,submissions.comment,submissions.survey_id FROM submissions LEFT JOIN users ON users.id = submissions.user_id WHERE users.uuid = $1 AND submissions.survey_id = $2',[data.uuid,data.survey_id], (error, results) => {
+        pool.query('SELECT users.id,submissions.user_id,submissions.comment,submissions.survey_id FROM submissions LEFT JOIN users ON users.id = submissions.user_id WHERE users.uuid = $1 AND submissions.survey_id = $2 order by submissions.survey_id ASC',[data.uuid,data.survey_id], (error, results) => {
             if (error) {
                 throw error;
             }
@@ -23,7 +23,7 @@ async function getSubmission(data) {
 
 async function getQuestionAnswer(data) {
   return new Promise(resolve => {
-      pool.query('select r.qid,q.question,r.ans from questions q LEFT JOIN surveyquestions sq on sq.qu_id = q.id LEFT JOIN reviews r on r.qid = q.id LEFT JOIN submissions su on su.id= r.submission_id where su.user_id = $1 AND sq.survey_id = $2',[data.user_id,data.survey_id],(error, results) => {
+      pool.query('select r.qid,q.question,r.ans from questions q LEFT JOIN surveyquestions sq on sq.qu_id = q.id LEFT JOIN reviews r on r.qid = q.id LEFT JOIN submissions su on su.id= r.submission_id where su.user_id = $1 AND sq.survey_id = $2 ',[data.user_id,data.survey_id],(error, results) => {
           if (error) {
               throw error;
           }
@@ -138,6 +138,7 @@ async function insertReview(data) {
             "INSERT INTO reviews (qid, ans, submission_id) VALUES ($1, $2, $3)",
             [data.qid,data.ans === "" ? null : data.ans,data.submission_id])
         .then(function(result) {
+          
           resolve(result.rows[0]);
         })
         .catch(function(err) {

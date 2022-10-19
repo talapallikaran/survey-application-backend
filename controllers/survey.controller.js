@@ -2,7 +2,6 @@ require("dotenv").config();
 var Survey = require('./../models/survey');
 var User = require('./../models/user');
 
-
 const getSurveyData = async (request, response) => {
   let count = 0;
   let surveydata = [];
@@ -20,8 +19,6 @@ const getSurveyData = async (request, response) => {
   let title;
 
   User.findOneById(request.params.uuid).then(isExists => {
-
-
     if (isExists) {
       user = request.params.uuid;
       Survey.getWorkerinfo(isExists.uuid)
@@ -205,144 +202,180 @@ const getSurveyData = async (request, response) => {
 const updateSurveyData = async function (req, res) {
   const formdata = req.body;
 
-
-    User.findOneById(req.body.uuid).then(async isExists => {
-      if (isExists) {
-        formdata.surveydata.forEach((element => {
-          let sub;
-          let update_sub;
-          if (req.body.uuid != undefined && req.body.wuuid != undefined) {
-            worker_uuid = req.body.wuuid;
-            User.findOneById(worker_uuid).then(async isWorker => {
-              if (isWorker) {
-                let sub1;
-                let update_sub1;
+  User.findOneById(req.body.uuid).then(async isExists => {
+    if (isExists) {
+      formdata.surveydata.forEach((element => {
+        let sub;
+        let update_sub;
+        if (req.body.uuid != undefined && req.body.wuuid != undefined) {
+          worker_uuid = req.body.wuuid;
+          User.findOneById(worker_uuid).then(async isWorker => {
+            if (isWorker) {
+              let sub1;
+              let update_sub1;
+              if (element.comment != '') {
                 Survey.checkSupervisorSubmissionExists(isWorker.id, element.survey_id, worker_uuid)
                   .then(async function (result) {
                     if (result) {
                       update_sub1 = await Survey.updateSupervisorSubmission({ worker_id: isWorker.id, survey_id: element.survey_id, comment: element.comment }).then(result => {
-                                  res.statusCode = 200;
-                                  return result;
-                                })
-                                .catch(function (err) {
-                                  res.statusCode = 400;
-                                });
+                        if (result) {
+                          res.statusCode = 200;
+                        }
+                        return result;
+                      })
+                        .catch(function (err) {
+                          if (err) {
+                            res.statusCode = 400;
+                          }
+                        });
                     }
-                    else{
+                    else {
                       sub1 = await Survey.insertSupervisorSubmission({ worker_id: isWorker.id, user_id: isExists.id, survey_id: element.survey_id, comment: element.comment }).then(result => {
-                                res.statusCode = 200;
-                                return result;
+                        if (result) {
+                          res.statusCode = 200;
+                        }
+                        return result;
+                      })
+                        .catch(function (err) {
+                          if (err) {
+                            res.statusCode = 400;
+                          }
+                        });
+                    }
+
+                    element.question.forEach((que => {
+                      Survey.checkSupervisorReviewExists(isWorker.id, que.qid)
+                        .then(function (result) {
+
+                          if (result) {
+                            Survey.updateSupervisorReview({ sv_submission_id: update_sub1, qid: que.qid, ans: que.ans })
+                              .then(function () {
+                                if (result) {
+                                  res.statusCode = 200;
+                                }
                               })
-                                .catch(function (err) {
+                              .catch(function (err) {
+                                if (err) {
                                   res.statusCode = 400;
-                                });
-                            }
-                        
-                     element.question.forEach((que => {
-                        Survey.checkSupervisorReviewExists(isWorker.id,que.qid)
-                          .then(function (result) {
-                            
-                            if (result) {
-                              Survey.updateSupervisorReview({sv_submission_id:update_sub1,qid: que.qid, ans: que.ans })
-                                .then(function () {
+                                }
+                              });
+                          }
+                          else {
+                            Survey.insertSupervisorReview({ qid: que.qid, ans: que.ans, sv_submission_id: sub1 })
+                              .then(function (result) {
+                                console.log("result4");
+                                if (result) {
                                   res.statusCode = 200;
-                                })
-                                .catch(function (err) {
+                                }
+                              })
+                              .catch(function (err) {
+                                if (err) {
                                   res.statusCode = 400;
-                                });
-                            }
-                            else {
-                              Survey.insertSupervisorReview({  qid: que.qid, ans: que.ans,sv_submission_id:sub1 })
-                                .then(function (result) {
-                                  console.log("result4");
-                                  res.statusCode = 200;
-                                })
-                                .catch(function (err) {
-                                  res.statusCode = 400;
-                                });
-                            }
-                          })
-  
-                      }))
+                                }
+                              });
+                          }
+                        })
+
+                    }))
                   })
               }
-            })
-  
-          }
-  
-          else {
-      
+            }
+          })
+        }
+
+        else {
+
+          if (element.comment != '') {
+
             Survey.checkSubmissionExists(isExists.id, element.survey_id, req.body.uuid)
               .then(async function (result) {
                 if (result) {
                   update_sub = await Survey.updateSubmission({ user_id: isExists.id, survey_id: element.survey_id, comment: element.comment }).then(result => {
-                     res.statusCode = 200;
+                    if (result) {
+                      res.statusCode = 200;
+                    }
                     return result;
                   })
                     .catch(function (err) {
-                      res.statusCode = 400;
+                      if (err) {
+                        res.statusCode = 400;
+                      }
+
                     });
                 }
                 else {
                   sub = await Survey.insertSubmission({ user_id: isExists.id, survey_id: element.survey_id, comment: element.comment }).then(result => {
-                     res.statusCode = 200;
+                    if (result) {
+                      res.statusCode = 200;
+                    }
                     return result;
                   })
                     .catch(function (err) {
-                      res.statusCode = 400;
+                      if (err) {
+                        res.statusCode = 400;
+                      }
                     });
                 }
-           if(element.question == 0){}
+
                 element.question.forEach((que => {
-  
-                  Survey.checkReviewExists(isExists.id, que.qid)
+
+                  Survey.checkReviewExists(que.qid, isExists.id)
                     .then(function (result) {
                       if (result) {
                         Survey.updateReview({ submission_id: update_sub, qid: que.qid, ans: que.ans })
-                          .then(function () {
-                            console.log("updateReview");
-                            res.statusCode = 200;
+                          .then(function (result) {
+                            if (result) {
+                              res.statusCode = 200;
+                            }
                           })
                           .catch(function (err) {
-                            res.statusCode = 400;
+                            if (err) {
+                              res.statusCode = 400;
+                            }
                           });
                       }
                       else {
-                        Survey.insertReview({ submission_id:sub, qid: que.qid, ans: que.ans })
+                        Survey.insertReview({ submission_id: sub, qid: que.qid, ans: que.ans })
                           .then(function (result) {
-                            console.log("insertReview");
-                            res.statusCode = 200;
+                            console.log("result4", result);
+                            if (result) {
+                              res.statusCode = 200;
+                            }
                           })
                           .catch(function (err) {
-                            res.statusCode = 400;
+                            if (err) {
+                              res.statusCode = 400;
+                            }
                           });
                       }
                     })
-  
-                 }))
+
+                }))
               })
           }
-        }))
-      }
-      else {
-        res.statusCode = 404;
-      }
-      console.log("res.statusCode",res.statusCode);
-      if (res.statusCode === 200) {
-        let result = await Promise.resolve('Success');
-        return res.send(result);
-      } else if (res.statusCode === 400) {
-        let err1 = await Promise.resolve('Error');
-        return res.send(err1);
-      } else if (res.statusCode === 404) {
-        let err = await Promise.resolve('uuid is invalid');
-        return res.send(err);
-      } else if (res.statusCode === 500) {
-        let err3 = await Promise.resolve('question data is blank');
-        return res.send(err3);
-      } 
-    });
-  
+        }
+      }))
+    }
+    else {
+      res.statusCode = 404;
+    }
+
+    if (res.statusCode === 200) {
+      let result = await Promise.resolve('Success');
+      return res.send(result);
+    }
+    else if (res.statusCode === 400) {
+      let err1 = await Promise.resolve('Error');
+      return res.send(err1);
+    } else if (res.statusCode === 404) {
+      let err = await Promise.resolve('uuid is invalid');
+      return res.send(err);
+    } else if (res.statusCode === 500) {
+      let err3 = await Promise.resolve('question data is blank');
+      return res.send(err3);
+    }
+  });
+
 
 }
 
