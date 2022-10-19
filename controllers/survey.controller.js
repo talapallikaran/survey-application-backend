@@ -17,12 +17,13 @@ const getSurveyData = async (request, response) => {
   let getworker = [];
   let wuuid;
   let user;
+  let title;
 
-  User.findOneById(request.query.uuid).then(isExists => {
-   
+  User.findOneById(request.params.uuid).then(isExists => {
+
 
     if (isExists) {
-      user = request.query.uuid;
+      user = request.params.uuid;
       Survey.getWorkerinfo(isExists.uuid)
         .then(function (result) {
           worker = result;
@@ -54,14 +55,13 @@ const getSurveyData = async (request, response) => {
             getsurvey = result;
             getsurvey.map((submission) => {
 
-              if(request.query.uuid != undefined && request.query.wuuid != undefined){
-                worker_uuid = request.query.wuuid
-              console.log("if---------------------------",worker_uuid);
-                Survey.getSubmission({ uuid:worker_uuid, survey_id: submission.id })
-                .then(function (result) {
-                  let data = result;
+              if (request.params.uuid != undefined && request.query.wuuid != undefined) {
+                worker_uuid = request.query.wuuid;
 
-                  if (result.length == 0) {
+                Survey.getSupervisorsubmissions({ uuid: worker_uuid, survey_id: submission.id })
+                  .then(function (result) {
+                    let data = result;
+                    if (result.length == 0) {
                       Survey.getQuestion({ survey_id: submission.id })
                         .then(function (result) {
                           answerdata1 = result;
@@ -74,6 +74,7 @@ const getSurveyData = async (request, response) => {
                           count++;
                           surveydata.push({
                             survey_id: id,
+                            title: title,
                             comment: comment,
                             question: answerdata1
                           });
@@ -87,10 +88,10 @@ const getSurveyData = async (request, response) => {
                               });
                           }
                         })
-                      }
+                    }
                     else {
                       data.map((element) => {
-                        Survey.getQuestionAnswer({ user_id: element.user_id, survey_id: element.survey_id })
+                        Survey.getSupervisorQuestionAnswer({ user_id: element.user_id, survey_id: element.survey_id })
                           .then(function (result) {
                             questiondata = result;
                             questiondata.map((que) => {
@@ -102,6 +103,7 @@ const getSurveyData = async (request, response) => {
                             count++;
                             surveydata.push({
                               survey_id: element.survey_id,
+                              title: submission.title,
                               comment: comment,
                               question: questiondata,
                             });
@@ -117,14 +119,14 @@ const getSurveyData = async (request, response) => {
                           })
                       })
                     }
-                })
+                  })
               }
-              else{
-              Survey.getSubmission({ uuid:user, survey_id: submission.id })
-                .then(function (result) {
-                  let data = result;
+              else {
+                Survey.getSubmission({ uuid: user, survey_id: submission.id })
+                  .then(function (result) {
+                    let data = result;
 
-                  if (result.length == 0) {
+                    if (result.length == 0) {
                       Survey.getQuestion({ survey_id: submission.id })
                         .then(function (result) {
                           answerdata1 = result;
@@ -138,6 +140,7 @@ const getSurveyData = async (request, response) => {
                           surveydata.push({
                             survey_id: id,
                             comment: comment,
+                            title: title,
                             question: answerdata1
                           });
 
@@ -150,9 +153,10 @@ const getSurveyData = async (request, response) => {
                               });
                           }
                         })
-                      }
+                    }
                     else {
                       data.map((element) => {
+                        console.log("data", data);
                         Survey.getQuestionAnswer({ user_id: element.user_id, survey_id: element.survey_id })
                           .then(function (result) {
                             questiondata = result;
@@ -165,6 +169,7 @@ const getSurveyData = async (request, response) => {
                             count++;
                             surveydata.push({
                               survey_id: element.survey_id,
+                              title: submission.title,
                               comment: comment,
                               question: questiondata,
                             });
@@ -180,9 +185,9 @@ const getSurveyData = async (request, response) => {
                           })
                       })
                     }
-                })
+                  })
               }
-          
+
             })
           }
         })
@@ -200,72 +205,145 @@ const getSurveyData = async (request, response) => {
 const updateSurveyData = async function (req, res) {
   const formdata = req.body;
 
-  User.findOneById(req.body.uuid).then(async isExists => {
-    if (isExists) {
-      formdata.surveydata.forEach((element => {
-        let sub;
-        Survey.checkSubmissionExists(isExists.id, element.survey_id, req.params.uuid)
-          .then(async function (result) {
-            if (result) {
-              Survey.updateSubmission({ user_id: isExists.id, survey_id: element.survey_id, comment: element.comment })
-                .then(function (result) {
-                  res.statusCode = 200;
-                })
-                .catch(function (err) {
-                  res.statusCode = 400;
-                });
-            }
-            else {
-              sub = await Survey.insertSubmission({ user_id: isExists.id, survey_id: element.survey_id, comment: element.comment }).then(result => {
-                res.statusCode = 200;
-                return result;
 
+    User.findOneById(req.body.uuid).then(async isExists => {
+      if (isExists) {
+        formdata.surveydata.forEach((element => {
+          let sub;
+          let update_sub;
+          if (req.body.uuid != undefined && req.body.wuuid != undefined) {
+            worker_uuid = req.body.wuuid;
+            User.findOneById(worker_uuid).then(async isWorker => {
+              if (isWorker) {
+                let sub1;
+                let update_sub1;
+                Survey.checkSupervisorSubmissionExists(isWorker.id, element.survey_id, worker_uuid)
+                  .then(async function (result) {
+                    if (result) {
+                      update_sub1 = await Survey.updateSupervisorSubmission({ worker_id: isWorker.id, survey_id: element.survey_id, comment: element.comment }).then(result => {
+                                  res.statusCode = 200;
+                                  return result;
+                                })
+                                .catch(function (err) {
+                                  res.statusCode = 400;
+                                });
+                    }
+                    else{
+                      sub1 = await Survey.insertSupervisorSubmission({ worker_id: isWorker.id, user_id: isExists.id, survey_id: element.survey_id, comment: element.comment }).then(result => {
+                                res.statusCode = 200;
+                                return result;
+                              })
+                                .catch(function (err) {
+                                  res.statusCode = 400;
+                                });
+                            }
+                        
+                     element.question.forEach((que => {
+                        Survey.checkSupervisorReviewExists(isWorker.id,que.qid)
+                          .then(function (result) {
+                            
+                            if (result) {
+                              Survey.updateSupervisorReview({sv_submission_id:update_sub1,qid: que.qid, ans: que.ans })
+                                .then(function () {
+                                  res.statusCode = 200;
+                                })
+                                .catch(function (err) {
+                                  res.statusCode = 400;
+                                });
+                            }
+                            else {
+                              Survey.insertSupervisorReview({  qid: que.qid, ans: que.ans,sv_submission_id:sub1 })
+                                .then(function (result) {
+                                  console.log("result4");
+                                  res.statusCode = 200;
+                                })
+                                .catch(function (err) {
+                                  res.statusCode = 400;
+                                });
+                            }
+                          })
+  
+                      }))
+                  })
+              }
+            })
+  
+          }
+  
+          else {
+      
+            Survey.checkSubmissionExists(isExists.id, element.survey_id, req.body.uuid)
+              .then(async function (result) {
+                if (result) {
+                  update_sub = await Survey.updateSubmission({ user_id: isExists.id, survey_id: element.survey_id, comment: element.comment }).then(result => {
+                     res.statusCode = 200;
+                    return result;
+                  })
+                    .catch(function (err) {
+                      res.statusCode = 400;
+                    });
+                }
+                else {
+                  sub = await Survey.insertSubmission({ user_id: isExists.id, survey_id: element.survey_id, comment: element.comment }).then(result => {
+                     res.statusCode = 200;
+                    return result;
+                  })
+                    .catch(function (err) {
+                      res.statusCode = 400;
+                    });
+                }
+           if(element.question == 0){}
+                element.question.forEach((que => {
+  
+                  Survey.checkReviewExists(isExists.id, que.qid)
+                    .then(function (result) {
+                      if (result) {
+                        Survey.updateReview({ submission_id: update_sub, qid: que.qid, ans: que.ans })
+                          .then(function () {
+                            console.log("updateReview");
+                            res.statusCode = 200;
+                          })
+                          .catch(function (err) {
+                            res.statusCode = 400;
+                          });
+                      }
+                      else {
+                        Survey.insertReview({ submission_id:sub, qid: que.qid, ans: que.ans })
+                          .then(function (result) {
+                            console.log("insertReview");
+                            res.statusCode = 200;
+                          })
+                          .catch(function (err) {
+                            res.statusCode = 400;
+                          });
+                      }
+                    })
+  
+                 }))
               })
-                .catch(function (err) {
-                  res.statusCode = 400;
-                });
-            }
-            element.question.forEach((que => {
-              Survey.checkReviewExists(que.qid, isExists.id)
-                .then(function (result) {
-                  if (result) {
-                    Survey.updateReview({ qid: que.qid, ans: que.ans })
-                      .then(function (result) {
-                        res.statusCode = 200;
-                      })
-                      .catch(function (err) {
-                        res.statusCode = 400;
-                      });
-                  }
-                  else {
-                    Survey.insertReview({ submission_id: sub, qid: que.qid, ans: que.ans })
-                      .then(function (result) {
-                        res.statusCode = 200;
-                      })
-                      .catch(function (err) {
-                        res.statusCode = 400;
-                      });
-                  }
-                })
+          }
+        }))
+      }
+      else {
+        res.statusCode = 404;
+      }
+      console.log("res.statusCode",res.statusCode);
+      if (res.statusCode === 200) {
+        let result = await Promise.resolve('Success');
+        return res.send(result);
+      } else if (res.statusCode === 400) {
+        let err1 = await Promise.resolve('Error');
+        return res.send(err1);
+      } else if (res.statusCode === 404) {
+        let err = await Promise.resolve('uuid is invalid');
+        return res.send(err);
+      } else if (res.statusCode === 500) {
+        let err3 = await Promise.resolve('question data is blank');
+        return res.send(err3);
+      } 
+    });
+  
 
-            }))
-          })
-      }))
-    }
-    else {
-      res.statusCode = 404;
-    }
-    if (res.statusCode === 200) {
-      let result = await Promise.resolve('Success');
-      return res.send(result);
-    } else if (res.statusCode === 400) {
-      let err1 = await Promise.resolve('Error');
-      return res.send(err1);
-    } else if (res.statusCode === 404) {
-      let err = await Promise.resolve('uuid is invalid');
-      return res.send(err);
-    }
-  });
 }
 
 const createSurvey = (req, res) => {

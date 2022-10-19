@@ -110,9 +110,9 @@ async function insertSubmission(data) {
   async  function updateSubmission(data) {
     return new Promise(function(resolve, reject) {
 
-      pool.query("UPDATE submissions SET comment = $3 WHERE submissions.survey_id = $2 AND submissions.user_id = $1", [data.user_id,data.survey_id,data.comment])
+      pool.query("UPDATE submissions SET comment = $3 WHERE submissions.survey_id = $2 AND submissions.user_id = $1 returning id", [data.user_id,data.survey_id,data.comment])
           .then(function(result) {
-            resolve(result.rows[0]);
+            resolve(result.rows[0].id);
           })
           .catch(function(err) {
             reject(err);
@@ -121,9 +121,6 @@ async function insertSubmission(data) {
     });
   }
 
-
-
-
   async function checkReviewExists(qid,user_id) {
     return new Promise(resolve => {
         pool.query('SELECT reviews.qid, reviews.ans,submissions.user_id FROM reviews,submissions WHERE reviews.submission_id=submissions.id AND reviews.qid = $1 AND submissions.user_id = $2', [qid,user_id], (error, results) => {
@@ -131,7 +128,6 @@ async function insertSubmission(data) {
                 throw error;
             }
             return resolve(results.rowCount > 0);
-            
         });
     });
 }
@@ -212,7 +208,7 @@ async function updateReview(data) {
 
 async function getSupervisorsubmissions(data) {
   return new Promise(resolve => {
-      pool.query('SELECT supervisor_submissions.user_id,supervisor_submissions.comment,supervisor_submissions.survey_id,supervisor_submissions.woker_id FROM supervisor_submissions left join users ON users.id =  supervisor_submissions.user_id WHERE user.uuid = $1 and supervisor_submissions.survey_id = $2',[data.uuid,data.survey_id], (error, results) => {
+      pool.query('SELECT supervisor_submissions.user_id,supervisor_submissions.comment,supervisor_submissions.survey_id,supervisor_submissions.worker_id FROM supervisor_submissions left join users ON users.id =  supervisor_submissions.worker_id WHERE users.uuid = $1 and supervisor_submissions.survey_id = $2',[data.uuid,data.survey_id], (error, results) => {
           if (error) {
               throw error;
           }
@@ -223,7 +219,7 @@ async function getSupervisorsubmissions(data) {
 
 async function getSupervisorQuestionAnswer(data) {
 return new Promise(resolve => {
-    pool.query('select r.qid,q.question,r.ans from questions q LEFT JOIN surveyquestions sq on sq.qu_id = q.id LEFT JOIN reviews r on r.qid = q.id LEFT JOIN submissions su on su.id= r.submission_id where su.user_id = $1 AND sq.survey_id = $2',[data.user_id,data.survey_id],(error, results) => {
+    pool.query('select r.qid,q.question,r.ans from questions q LEFT JOIN surveyquestions sq on sq.qu_id = q.id LEFT JOIN supervisor_reviews r on r.qid = q.id LEFT JOIN supervisor_submissions su on su.id= r.sv_submission_id where su.user_id = $1 AND sq.survey_id = $2',[data.user_id,data.survey_id],(error, results) => {
         if (error) {
             throw error;
         }
@@ -231,6 +227,89 @@ return new Promise(resolve => {
     });
 });
 }
+
+
+async function checkSupervisorSubmissionExists(worker_id,survey_id,uuid) {
+  return new Promise(resolve => {
+      pool.query('select * from supervisor_submissions left join users on users.id = supervisor_submissions.worker_id where supervisor_submissions.worker_id = $1 and supervisor_submissions.survey_id = $2 and users.uuid = $3', [worker_id,survey_id,uuid], (error, results) => {
+          if (error) {
+            console.log(error);
+            return;
+          }
+          return resolve(results.rowCount > 0);
+      });
+  });
+}
+
+async function insertSupervisorSubmission(data) {
+  return new Promise(function(resolve, reject) {
+      pool.query(
+          'INSERT INTO supervisor_submissions (comment,dateupdated,user_id,survey_id,worker_id) VALUES ($1, $2, $3,$4,$5) RETURNING id',
+          [data.comment,date,data.user_id,data.survey_id,data.worker_id])
+ 
+      .then(function(result) {
+        resolve(result.rows[0].id);
+      })
+      .catch(function(err) {
+        reject(err);
+      });
+  });
+}
+
+
+
+async  function updateSupervisorSubmission(data) {
+  return new Promise(function(resolve, reject) {
+
+    pool.query("UPDATE supervisor_submissions SET comment = $3 WHERE supervisor_submissions.survey_id = $2 AND supervisor_submissions.worker_id = $1 returning id", [data.worker_id,data.survey_id,data.comment])
+        .then(function(result) {
+          resolve(result.rows[0].id);
+        })
+        .catch(function(err) {
+          reject(err);
+        });
+  
+  });
+}
+
+async function checkSupervisorReviewExists(worker_id,qid) {
+  return new Promise(resolve => {
+      pool.query('SELECT  supervisor_reviews.qid,  supervisor_reviews.ans,supervisor_submissions.worker_id FROM supervisor_reviews,supervisor_submissions WHERE supervisor_reviews.sv_submission_id=supervisor_submissions.id AND supervisor_submissions.worker_id = $1 AND supervisor_reviews.qid = $2', [worker_id,qid], (error, results) => {
+          if (error) {
+              throw error;
+          }
+          return resolve(results.rowCount > 0);
+      });
+  });
+}
+
+async function insertSupervisorReview(data) {
+  return new Promise(function(resolve, reject) {
+        pool.query(
+          "INSERT INTO supervisor_reviews (qid, ans, sv_submission_id) VALUES ($1, $2, $3)",
+          [data.qid,data.ans === "" ? null : data.ans,data.sv_submission_id])
+      .then(function(result) {
+        resolve(result.rows[0]);
+      })
+      .catch(function(err) {
+        reject(err);
+      });
+  });
+}
+
+async function updateSupervisorReview(data) {
+  return new Promise(function(resolve, reject) {
+      pool.query("UPDATE supervisor_reviews SET ans = $3 WHERE supervisor_reviews.qid = $2 and supervisor_reviews.sv_submission_id = $1", [data.sv_submission_id,data.qid,data.ans])
+      .then(function(result) {
+        resolve(result.rows[0]);
+      })
+      .catch(function(err) {
+        reject(err);
+      });
+  });
+}
+
+
 
 module.exports = {
   getSubmission,
@@ -249,5 +328,11 @@ module.exports = {
     getSubmissionId,
     getWorkerinfo,
     getSupervisorsubmissions,
-    getSupervisorQuestionAnswer
+    getSupervisorQuestionAnswer,
+    checkSupervisorSubmissionExists,
+    updateSupervisorSubmission,
+    insertSupervisorSubmission,
+    checkSupervisorReviewExists,
+    insertSupervisorReview,
+    updateSupervisorReview
 }
