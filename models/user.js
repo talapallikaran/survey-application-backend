@@ -14,7 +14,7 @@ const date = new Date();
 
 const getUsers = function() {
     return new Promise(function(resolve, reject) {
-      pool.query('SELECT * FROM users', [])
+      pool.query('select u.*,r.name as reporting_person_name from users u left join users r on u.reporting_person_id=r.id ORDER by u.id asc', [])
         .then(function(results) {
           resolve(results.rows);
         })
