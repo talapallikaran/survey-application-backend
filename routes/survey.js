@@ -1,6 +1,7 @@
 const express = require('express');
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 const surveyControllers = require('../controllers/survey.controller');
+var User = require('./../models/user');
 
 router.post("/submission", surveyControllers.updateSurveyData, 
 (req, res, next) => {
@@ -9,7 +10,9 @@ router.post("/submission", surveyControllers.updateSurveyData,
 
 router.get("/data/:uuid", surveyControllers.getSurveyData, 
 (req, res, next) => {
+
   res.send(req.data);
+  next();
 });
 
 
