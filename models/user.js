@@ -4,12 +4,30 @@ const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
 const uuid = require("uuid");
 const uid = uuid.v4();
-
+const multer = require("multer");
+const path = require("path");
 
 let isActive = 1;
 let deleteFlag = 0;
 let role_id = 3;
 const date = new Date();
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, ".uploads"), // cb -> callback
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.round(
+      Math.random() * 1e9
+    )}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  },
+});
+
+const handleMultipartData = multer({
+  storage,
+  limits: { fileSize: 1000000 * 5 },
+}).single("image");
+
+
 
 
 const getUsers = function() {
@@ -68,10 +86,9 @@ async function create(data) {
           return hashPassword(data.password);
         })
         .then(function(hash) {
-          return pool.query('INSERT INTO users (name, email,phone,role_id,isactive,deleteflag,password,uuid,updateddate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9)', [data.name, data.email, data.phone, role_id, isActive, deleteFlag, hash, uid, date]);
+          return pool.query('INSERT INTO users (name, email,phone,role_id,isactive,deleteflag,password,uuid,updateddate,reporting_person_id,image_src) VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9,$10,$11)', [data.name, data.email, data.phone, role_id, isActive, deleteFlag, hash, uid, date,data.reporting_person_id,image_src]);
         })
         .then(function(result) {
-          console.log("reult",result.rows[0]);
           resolve(result.rows[0]);
         })
         .catch(function(err) {
@@ -80,7 +97,26 @@ async function create(data) {
     });
   }
 
-
+  function updateUser(data) {
+    return new Promise(function(resolve, reject) {
+      if (!data.id) {
+        reject('error: id missing')
+      }
+      else {
+        validateUserData(data)
+        .then(function() {
+          return pool.query('UPDATE users SET name = $2,email = $3,phone = $4,password = $5,reporting_person_id = $6 WHERE id = $1 returning name', [data.id, data.name, data.email, data.phone,data.password,data.reporting_person_id]);
+        }
+          .then(function(result) {
+            resolve(result.rows[0]);
+          })
+          .catch(function(err) {
+            reject(err);
+          })
+          );
+      }
+    });
+  }
 
 function hashPassword(password) {
     return new Promise(function(resolve, reject) {
@@ -105,10 +141,12 @@ function hashPassword(password) {
   function validateUserData(data) {
     return new Promise(function(resolve, reject) {
       if (!data.password || !data.email || !data.phone) {
+        console.log("data",data.password, data.email ,data.phone);
         reject('email and/or password, Phone missing')
       }
       else {
-        validatePassword(data.password, 6)
+    
+        validatePassword(data.password, 6, data.confirmPassword)
           .then(function() {
             return validateEmail(data.email);
           })
@@ -142,13 +180,16 @@ function hashPassword(password) {
     });
   }
   
-  function validatePassword(password, minCharacters) {
+  function validatePassword(password, minCharacters,confirmPassword) {
     return new Promise(function(resolve, reject) {
       if (typeof (password) !== 'string') {
         reject('password must be a string');
       }
       else if (password.length < minCharacters) {
         reject('password must be at least ' + minCharacters + ' characters long');
+      }
+      else if (password !== confirmPassword) {
+        reject("Confirm Password does not match with password");
       }
       else {
         resolve();
@@ -189,5 +230,7 @@ module.exports = {
     create,
     getUsers,
     findOneById,
-    getUserId
+    getUserId,
+    handleMultipartData,
+    updateUser
 }

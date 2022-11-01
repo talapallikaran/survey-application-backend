@@ -20,6 +20,8 @@ const listUser = function(req, res) {
   }
 
 const createUser =  (req, res) => {
+
+
     User.isUserExists(req.body.email).then(isExists => {
         if (isExists) {
             return res.status(400).json({
@@ -46,6 +48,7 @@ const createUser =  (req, res) => {
     }
  
     });
+
   }
 
 const login = (request, response) => {
@@ -97,9 +100,21 @@ const login = (request, response) => {
     });
 };
 
+const updateUser = (req, res) => {
+    User.updateUser({ id: req.params.id, data: req.body })
+      .then(function(result) {
+        return res.status(200).json(result);
+      })
+      .catch(function(err) {
+        return res.status(400).json({
+          message: err
+        });
+      });
+  }
 
 module.exports = {
     login,
     createUser,
-    listUser
+    listUser,
+    updateUser
 }
