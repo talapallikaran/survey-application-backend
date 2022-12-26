@@ -9,6 +9,7 @@ const bodyParser = require('body-parser')
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const surveyRouter = require('./routes/survey');
+const imageRouter = require('./routes/image')
 const app = express();
 
 app.set('views', path.join(__dirname, 'views'));
@@ -19,12 +20,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-
+app.use('/public',express.static('public'))
 
 app.use('/', indexRouter);
 app.use('/', usersRouter);
 app.use('/survey', surveyRouter);
-app.use('/uploads', usersRouter);
+app.use('/images', imageRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -51,7 +52,7 @@ app.use(function (err, req, res, next) {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-app.use(function(req, res, next) {
+app.use(function(req, res, next,err) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header('Access-Control-Allow-Methods', 'DELETE, PUT, GET, POST');
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");

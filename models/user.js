@@ -12,20 +12,20 @@ let deleteFlag = 0;
 let role_id = 3;
 const date = new Date();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, ".uploads"), // cb -> callback
-  filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${Math.round(
-      Math.random() * 1e9
-    )}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  },
-});
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => cb(null, ".uploads"), // cb -> callback
+//   filename: (req, file, cb) => {
+//     const uniqueName = `${Date.now()}-${Math.round(
+//       Math.random() * 1e9
+//     )}${path.extname(file.originalname)}`;
+//     cb(null, uniqueName);
+//   },
+// });
 
-const handleMultipartData = multer({
-  storage,
-  limits: { fileSize: 1000000 * 5 },
-}).single("image");
+// const handleMultipartData = multer({
+//   storage,
+//   limits: { fileSize: 1000000 * 5 },
+// }).single("image");
 
 
 
@@ -80,13 +80,14 @@ async function getUser(email, uuid) {
 
 
 async function create(data) {
+  console.log("data-------------------->",data);
     return new Promise(function(resolve, reject) {
       validateUserData(data)
         .then(function() {
           return hashPassword(data.password);
         })
         .then(function(hash) {
-          return pool.query('INSERT INTO users (name, email,phone,role_id,isactive,deleteflag,password,uuid,updateddate,reporting_person_id,image_src) VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9,$10,$11)', [data.name, data.email, data.phone, role_id, isActive, deleteFlag, hash, uid, date,data.reporting_person_id,image_src]);
+          return pool.query('INSERT INTO users (name, email,phone,role_id,isactive,deleteflag,password,uuid,updateddate,reporting_person_id,image_src) VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9,$10,$11)', [data.name, data.email, data.phone, role_id, isActive, deleteFlag, hash, uid, date,data.reporting_person_id,data.image_src]);
         })
         .then(function(result) {
           resolve(result.rows[0]);
@@ -97,26 +98,30 @@ async function create(data) {
     });
   }
 
-  function updateUser(data) {
+  async function updateUser(data) {
     return new Promise(function(resolve, reject) {
       if (!data.id) {
         reject('error: id missing')
       }
-      else {
+      else{
         validateUserData(data)
         .then(function() {
-          return pool.query('UPDATE users SET name = $2,email = $3,phone = $4,password = $5,reporting_person_id = $6 WHERE id = $1 returning name', [data.id, data.name, data.email, data.phone,data.password,data.reporting_person_id]);
-        }
-          .then(function(result) {
-            resolve(result.rows[0]);
-          })
-          .catch(function(err) {
-            reject(err);
-          })
-          );
+          return hashPassword(data.password);
+        })
+        .then(function(hash) {
+          return pool.query('UPDATE users SET name = $2,email = $3,phone = $4,password = $5,reporting_person_id = $6,image_src = $7 WHERE id = $1', [data.id, data.name, data.email, data.phone,hash,data.reporting_person_id,data.image_src]);
+        })
+        .then(function(result) {
+          resolve(result.rows[0]);
+        })
+        .catch(function(err) {
+          reject(err);
+        });
       }
+     
     });
   }
+
 
 function hashPassword(password) {
     return new Promise(function(resolve, reject) {
@@ -141,7 +146,6 @@ function hashPassword(password) {
   function validateUserData(data) {
     return new Promise(function(resolve, reject) {
       if (!data.password || !data.email || !data.phone) {
-        console.log("data",data.password, data.email ,data.phone);
         reject('email and/or password, Phone missing')
       }
       else {
@@ -231,6 +235,5 @@ module.exports = {
     getUsers,
     findOneById,
     getUserId,
-    handleMultipartData,
     updateUser
 }
