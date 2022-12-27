@@ -24,9 +24,11 @@ const getSurveyData = async (request, response) => {
       Survey.getWorkerinfo(isExists.uuid)
         .then(function (result) {
           worker = result;
+          
           worker.slice(0, 3).map((work) => {
             User.getUserId(work.worker_id)
               .then(function (result) {
+             
                 workerdata = result;
                 name = workerdata[0].name
                 worker_uuid = workerdata[0].uuid

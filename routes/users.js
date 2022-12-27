@@ -25,7 +25,14 @@ router.get("/users", userControllers.listUser, (req, res, next) => {
   res.status(400).send({ error: error.message })
 });
 
-router.put("/users/:id",imageUploader.upload.single('image_src'), userControllers.updateUser, (req, res, next) => {
+router.put("/edit/:id",imageUploader.upload.single('image_src'), userControllers.updateUser, (req, res, next) => {
+  res.send(req.data);
+},
+(error, req, res, next) => {
+  res.status(400).send({ error: error.message })
+});
+
+router.delete("/delete/:id",userControllers.deleteUser, (req, res, next) => {
   res.send(req.data);
 },
 (error, req, res, next) => {

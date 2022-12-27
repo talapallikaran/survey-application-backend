@@ -34,7 +34,7 @@ async function getQuestionAnswer(data) {
 
 async function getSurvey(data) {
   return new Promise(resolve => {
-      pool.query('select * from survey where month = $1 AND year = $2',[month,year],(error, results) => {
+      pool.query('select * from survey where month = $1 AND year = $2 order by survey.id asc',[month,year],(error, results) => {
           if (error) {
               throw error;
           }
@@ -88,6 +88,20 @@ async function checkSubmissionExists(user_id,survey_id,uuid) {
             return resolve(results.rowCount > 0);
         });
     });
+}
+
+
+
+async function checkSubmissionExistsForDelete(user_id) {
+  return new Promise(resolve => {
+      pool.query('select * from submissions left join users on users.id = submissions.user_id where submissions.user_id = $1', [user_id], (error, results) => {
+          if (error) {
+            console.log(error);
+            return;
+          }
+          return resolve(results.rowCount > 0);
+      });
+  });
 }
 
 async function insertSubmission(data) {
@@ -198,6 +212,7 @@ async function updateReview(data) {
             if (error) {
                 throw error;
             }
+            console.log("results.rows",results.rows);
             return resolve(results.rows);
         });
     });
@@ -335,5 +350,6 @@ module.exports = {
     insertSupervisorSubmission,
     checkSupervisorReviewExists,
     insertSupervisorReview,
-    updateSupervisorReview
+    updateSupervisorReview,
+    checkSubmissionExistsForDelete
 }
